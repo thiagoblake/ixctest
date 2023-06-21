@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Formulário Webhook</title>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  </head>
+  <body>
+    <h1>Formulário Webhook</h1>
+    <form action="/webhook" method="POST">
+      <label for="cnpj_cpf">CNPJ/CPF:</label>
+      <input type="text" id="cnpj_cpf" name="cnpj_cpf" required><br><br>
+      
+      <label for="data_nascimento">Data de Nascimento:</label>
+      <input type="text" id="data_nascimento" name="data_nascimento" required><br><br>
+      
+      <div class="g-recaptcha" data-sitekey="YOUR_RECAPTCHA_SITE_KEY"></div><br><br>
+      
+      <button type="submit">Enviar</button>
+    </form>
+  </body>
+</html>
