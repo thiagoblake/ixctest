@@ -5,8 +5,13 @@ const svgCaptcha = require('svg-captcha');
 function handleWebhookRequest(req, res) {
   const { cnpj_cpf, data_nascimento, captcha } = req.body;
 
+  // Verifica se o captcha é obrigatório e se foi fornecido
+  if (isCaptchaRequired(req) && !captcha) {
+    return res.status(400).json({ error: 'O captcha é obrigatório.' });
+  }
+
   // Verifica se o captcha fornecido é válido
-  if (!validateCaptcha(req, captcha)) {
+  if (isCaptchaRequired(req) && !validateCaptcha(req.session, captcha)) {
     return res.status(400).json({ error: 'Captcha inválido.' });
   }
 
@@ -21,17 +26,20 @@ function handleWebhookRequest(req, res) {
   });
 }
 
-function validateCaptcha(req, userCaptcha) {
-  // Verifica se o captcha fornecido pelo usuário é igual ao captcha gerado anteriormente
-  // Você pode ajustar essa lógica de validação de acordo com as suas necessidades
-  const validCaptcha = req.session.captcha; // Captcha gerado e armazenado na sessão
+function isCaptchaRequired(req) {
+  // Adicione sua lógica para determinar se o captcha é obrigatório ou não
+  // Por exemplo, você pode verificar se o usuário está em uma lista de IPs confiáveis, se já atingiu um limite de requisições, etc.
+  return true; // Altere para retornar true ou false com base na sua lógica
+}
+
+function validateCaptcha(session, userCaptcha) {
+  const validCaptcha = session.captcha; // Captcha gerado e armazenado na sessão
   return userCaptcha === validCaptcha;
 }
 
-function generateCaptcha(req) {
+function generateCaptcha(session) {
   const captcha = svgCaptcha.create();
-  // Salva o valor do captcha gerado na sessão para posterior validação
-  req.session.captcha = captcha.text;
+  session.captcha = captcha.text;
   return captcha.data;
 }
 
@@ -57,7 +65,7 @@ function handleInternalResponse(body, data_nascimento, res) {
 }
 
 function getCaptchaData(req, res) {
-  const captchaData = generateCaptcha(req);
+  const captchaData = generateCaptcha(req.session);
   res.type('svg').send(captchaData);
 }
 
