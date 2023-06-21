@@ -3,5 +3,6 @@ const router = express.Router();
 const webhookController = require('./controllers/webhookController');
 
 router.post('/webhook', webhookController.handleWebhookRequest);
+router.get('/captcha', webhookController.getCaptchaData);
 
 module.exports = router;
