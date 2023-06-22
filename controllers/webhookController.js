@@ -3,7 +3,7 @@ const createInternalRequestOptions = require('../services/internalRequestOptions
 const svgCaptcha = require('svg-captcha');
 
 function handleWebhookRequest(req, res) {
-  const { cnpj_cpf, data_nascimento, captcha } = req.body;
+  const { cnpj_cpf, data_nascimento, hotsite_email, senha, captcha } = req.body;
 
   // Verifica se o captcha é obrigatório e se foi fornecido
   if (isCaptchaRequired(req) && !captcha) {
@@ -21,7 +21,7 @@ function handleWebhookRequest(req, res) {
     if (error) {
       handleInternalRequestError(res);
     } else {
-      handleInternalResponse(body, data_nascimento, res);
+      handleInternalResponse(body, data_nascimento, hotsite_email, senha, res);
     }
   });
 }
@@ -37,12 +37,6 @@ function validateCaptcha(session, userCaptcha) {
   return userCaptcha === validCaptcha;
 }
 
-function generateCaptcha(session) {
-  const captcha = svgCaptcha.create();
-  session.captcha = captcha.text;
-  return captcha.data;
-}
-
 function performInternalRequest(options, callback) {
   request(options, callback);
 }
@@ -51,10 +45,11 @@ function handleInternalRequestError(res) {
   res.status(500).json({ error: 'Erro na consulta interna.' });
 }
 
-function handleInternalResponse(body, data_nascimento, res) {
+function handleInternalResponse(body, data_nascimento, hotsite_email, senha, res) {
   if (body && body.registros && body.registros.length > 0) {
     const registro = body.registros[0];
     if (registro.data_nascimento === data_nascimento) {
+      editUser(registro, hotsite_email, senha); // Chama a função editUser para realizar a edição do usuário
       res.json({ valid: true });
     } else {
       res.json({ valid: false });
@@ -62,6 +57,39 @@ function handleInternalResponse(body, data_nascimento, res) {
   } else {
     res.status(404).json({ error: 'Registro não encontrado.' });
   }
+}
+
+function editUser(registro, hotsite_email, senha) {
+  const token = process.env.TOKEN;
+  const url = `${process.env.URL}/${registro.id}`;
+
+  const options = {
+    method: 'PUT',
+    url: url,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${Buffer.from(token).toString('base64')}`,
+    },
+    body: {
+      ...registro, // Manter todos os dados existentes
+      hotsite_email: hotsite_email, // Novo valor para o campo hotsite_email
+      senha: senha, // Novo valor para o campo senha
+      data_nascimento: convertDataNascimento(registro.data_nascimento), // Convertendo para o formato dd/mm/yyyy
+    },
+    json: true,
+  };
+
+  request(options, function (error, response, body) {
+    if (error) throw new Error(error);
+
+    console.log(body);
+  });
+}
+
+function convertDataNascimento(data_nascimento) {
+  // Converte a data_nascimento para o formato dd/mm/yyyy
+  const [year, month, day] = data_nascimento.split('-');
+  return `${day}/${month}/${year}`;
 }
 
 function getCaptchaData(req, res) {
@@ -73,3 +101,4 @@ module.exports = {
   handleWebhookRequest,
   getCaptchaData
 };
+
